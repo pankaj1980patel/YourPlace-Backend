@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const { v4: uuidv4 } = require("uuid");
 const getCoordsForAddress = require("../util/location");
+const Place = require("../models/place");
 
 // Generate a v4 UUID
 const newUUID = uuidv4();
@@ -30,22 +31,31 @@ let DUMMY_PLACES = [
 ];
 
 //function to get places by using it's id
-const getPlaceById = (req, res, next) => {
+const getPlaceById = async (req, res, next) => {
   console.log("Get method received");
   const placeId = req.params.pid;
-  const place = DUMMY_PLACES.find((p) => {
-    return p.id === placeId;
-  });
+  let place;
+  try {
+    place = await Place.findById(placeId);
+  } catch (error) {
+    console.log(error);
+    return next(
+      new HttpError("Something went wrong could not find the place", 500)
+    );
+  }
   if (!place) {
-    throw new HttpError("Could not find the place for the provided id.", 404);
-
+    const error = new HttpError(
+      "Could not find the place for the provided id.",
+      404
+    );
+    return next(error);
     // const error = new Error("Could not find the place for the provided id.");
     // error.code = 404;
     // throw error;
 
     // return res.status(404).json({message:'This place is not available'})
   }
-  res.json({ place }); // {place} => {place : place}
+  res.json({ place: place.toObject({ getters: true }) }); // {place} => {place : place}
 };
 
 const getPlacesByUserId = (req, res, next) => {
@@ -77,22 +87,33 @@ const createPlace = async (req, res, next) => {
     );
   }
   const { title, description, address, creatorId } = req.body; // title = req.body.title
-  let location;
+
   try {
-    location = await getCoordsForAddress(address);
+    location = getCoordsForAddress(address);
   } catch (error) {
     return next();
   }
-  const createdPlace = {
-    id: uuidv4(),
-    title: title,
-    description: description,
-    location: location,
-    address: address,
-    creatorId: creatorId,
-  };
-  DUMMY_PLACES.push(createdPlace);
-  console.log(DUMMY_PLACES);
+  // const location = {
+  //   lat: 21.28072235129267, // Your hardcoded latitude value
+  //   lng: 73.08025617066227, // Your hardcoded longitude value
+  // };
+
+  const createdPlace = new Place({
+    title,
+    description,
+    address,
+    location,
+    image: "https://fastread.in/images/uploads/Galteshwar-Mahadev-Temple.jpg ",
+    creatorId,
+  });
+  try {
+    await createdPlace.save();
+  } catch (error) {
+    console.log("ERROR : ", error);
+    const err = new HttpError("Creating place failed, please try again", 500);
+    return next(err);
+  }
+  console.log(createdPlace);
 
   res.status(201).json({ place: createdPlace });
 };
