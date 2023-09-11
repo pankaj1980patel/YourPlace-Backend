@@ -3,6 +3,8 @@ const HttpError = require("../models/http-error");
 const { v4: uuidv4 } = require("uuid");
 const getCoordsForAddress = require("../util/location");
 const Place = require("../models/place");
+const User = require("../models/user");
+const mongoose = require("mongoose");
 
 // Generate a v4 UUID
 const newUUID = uuidv4();
@@ -118,8 +120,26 @@ const createPlace = async (req, res, next) => {
     image: "https://fastread.in/images/uploads/Galteshwar-Mahadev-Temple.jpg ",
     creatorId,
   });
+  let user;
+  console.log(creatorId);
   try {
-    await createdPlace.save();
+    user = await User.findById(creatorId);
+  } catch (error) {
+    return next(
+      new HttpError("Creating place failed (user not found), Please try again letter", 500)
+    );
+  }
+  if (!user) {
+    return next(new HttpError("Could not find the user for provided id", 404));
+  }
+  console.log(user);
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await createdPlace.save({ session: sess });
+    user.places.push(createdPlace);
+    await user.save({ session: sess });
+    await sess.commitTransaction();
   } catch (error) {
     console.log("ERROR : ", error);
     const err = new HttpError("Creating place failed, please try again", 500);
@@ -171,11 +191,11 @@ const deletePlace = async (req, res, next) => {
     if (!deletedPlace) {
       return next(new HttpError("Place not found", 404));
     }
-  }catch(e){
+  } catch (e) {
     console.log(e);
   }
-  
-  res.status(200).json({message:"Sucessfully message got deleted"});
+
+  res.status(200).json({ message: "Sucessfully message got deleted" });
 };
 
 exports.getPlaceById = getPlaceById;

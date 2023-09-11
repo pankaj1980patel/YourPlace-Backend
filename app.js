@@ -17,6 +17,9 @@ app.use(bodyParser.json());
 app.use("/api/places", placesRouter);
 
 app.use("/api/users", userRoutes);
+
+mongoose.connect(url).then(()=>{}).catch(()=>{})
+
 app.use((req, res, next) => {
   throw new HttpError("Could not found this route", 404);
 });
@@ -31,5 +34,4 @@ app.use((error, req, res, next) => {
 
 // app.use('/api/',placesRouter);
 
-mongoose.connect(url).then(()=>{}).catch(()=>{})
 app.listen(5000);
