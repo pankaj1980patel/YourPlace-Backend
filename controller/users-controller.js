@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const HttpError = require("../models/http-error");
 const { validationResult } = require("express-validator");
+const User = require("../models/user");
 
 const DUMMY_USSERS = [
   {
@@ -16,14 +17,21 @@ const getUser = (req, res, next) => {
   res.json({ users: DUMMY_USSERS });
 };
 
-const signup = (req, res, next) => {
+const signup = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(
       new HttpError("Invalid input passes, please check your data", 422)
     );
   }
+  
   const { name, email, password } = req.body;
+  let existingUser;
+  try {
+    existingUser = User.findOne({ email: email });
+  } catch (e) {}
+
+
   const hasUser = DUMMY_USSERS.find((u) => u.email === email);
   if (hasUser) {
     return next(new HttpError("User already exists", 422));
