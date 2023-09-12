@@ -64,6 +64,7 @@ const getPlacesByUserId = async (req, res, next) => {
   console.log("hello from user getPlacesByUserId");
   const userId = req.params.uid;
   console.log(userId);
+  // we can also do this by using populate the places of user by using it's user id
   let places;
   try {
     places = await Place.find({ creatorId: userId });
@@ -123,8 +124,9 @@ const createPlace = async (req, res, next) => {
   let user;
   console.log(creatorId);
   try {
-    user = await User.findById(creatorId);
+    user = await User.findById(creatorId).exec();
   } catch (error) {
+    console.log(error)
     return next(
       new HttpError("Creating place failed (user not found), Please try again letter", 500)
     );
@@ -184,17 +186,35 @@ const updatePlace = async (req, res, next) => {
 };
 const deletePlace = async (req, res, next) => {
   const placeId = req.params.pid;
+  let place;
   try {
-    // Find the place by its ID and remove it
-    const deletedPlace = await Place.findByIdAndRemove(placeId);
-
-    if (!deletedPlace) {
-      return next(new HttpError("Place not found", 404));
-    }
-  } catch (e) {
-    console.log(e);
+    place = await Place.findById(placeId).populate('creatorId');
+  } catch (error) {
+    console.log(error)
+    return next(
+      new HttpError("Something went wrong could find the place", 500)
+    );
   }
+  if(!place){
+    return next(
+      new HttpError("Could not find place for this ID", 404)
+    );
+  }
+  try {
+    const session = await mongoose.startSession();
+    await session.startTransaction();
+    await Place.findByIdAndRemove(placeId, session);
+    place.creatorId.places.pull(place);
+    await place.creatorId.save({session});
+    await session.commitTransaction();
 
+  } catch (error) {
+      console.log(error);
+      return next(
+        new HttpError("Something wrong during deletion", 500)
+      );
+  }
+  
   res.status(200).json({ message: "Sucessfully message got deleted" });
 };
 

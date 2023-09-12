@@ -18,7 +18,15 @@ app.use("/api/places", placesRouter);
 
 app.use("/api/users", userRoutes);
 
-mongoose.connect(url).then(()=>{}).catch(()=>{})
+mongoose
+  .connect(url, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => {})
+  .catch((error) => {
+    console.log(error);
+  });
 
 app.use((req, res, next) => {
   throw new HttpError("Could not found this route", 404);
