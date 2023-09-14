@@ -1,6 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const fs = require('fs')
+const path = require('path')
+
 
 const placesRouter = require("./routes/places-routes");
 const userRoutes = require("./routes/users-routes");
@@ -8,12 +11,21 @@ const HttpError = require("./models/http-error");
 
 const userName = "panther1980";
 const password = "JUAoJHSzpEmov9a3";
-const dbName = "places";
+const dbName = "mern";
+
 
 const url = `mongodb+srv://${userName}:${password}@cluster0.aethqem.mongodb.net/${dbName}?retryWrites=true&w=majority`;
 const app = express();
 app.use(bodyParser.json());
 
+app.use('/uploads',express.static(path.join('uploads')))
+
+app.use((req,res,next)=>{
+  res.setHeader('Access-Control-Allow-Origin','*')
+  res.setHeader('Access-Control-Allow-Headers','Origin, X-Requested-With, Content-Type, Accept, Authorization')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE' )
+  next()
+})
 app.use("/api/places", placesRouter);
 
 app.use("/api/users", userRoutes);
@@ -33,10 +45,17 @@ app.use((req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
+  if(req.file){
+    fs.unlink(req.file.path,(err)=>{
+        console.log(err)
+    })
+  }
   if (res.headerSent) {
     return next(error);
   }
+  console.log("General error ==========\n"+error+"\n\n\n")
   res.status(error.code || 500);
+  
   res.json({ message: error.message || "An unknown error occured" });
 });
 
