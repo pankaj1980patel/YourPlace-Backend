@@ -9,9 +9,9 @@ const placesRouter = require("./routes/places-routes");
 const userRoutes = require("./routes/users-routes");
 const HttpError = require("./models/http-error");
 
-const userName = "panther1980";
-const password = "JUAoJHSzpEmov9a3";
-const dbName = "mern";
+const userName = process.env.DB_USERNAME;
+const password = process.env.DB_PASSWORD;
+const dbName = process.env.DB_NAME;
 
 
 const url = `mongodb+srv://${userName}:${password}@cluster0.aethqem.mongodb.net/${dbName}?retryWrites=true&w=majority`;

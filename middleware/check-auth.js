@@ -11,7 +11,7 @@ module.exports = (req, res, next) => {
     if (!token) {
       throw new HttpError("Authentication Failed", 401); // Use 'throw' to trigger the catch block
     }
-    const decodedToken = jwt.verify(token, "supersecret_dont_share");
+    const decodedToken = jwt.verify(token, process.env.JWT_KEY);
     req.userData = { userId: decodedToken.userId };
     next();
   } catch (error) {
